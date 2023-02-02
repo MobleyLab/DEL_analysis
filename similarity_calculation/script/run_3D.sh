@@ -8,18 +8,11 @@
 #SBATCH --mem-per-cpu=2gb
 #SBATCH --gres=gpu:titan:1
 
-#Function to call to run the actual code
+# Load in appropriate working environment
 source activate oepython
 
-script_path=anagenex/FINAL
-cd $script_path
+# Generate conformers
+python gen_conf.py --infile "building_blocks.csv"
 
-# Initialize variables
-dirname='../files'
-FILES="${dirname}/*.oeb"
-
-# Create new directory to store all files
-for f in "${FILES}"
-do
-python calc_3D_sim.py --ref "${f}" --test "${f}"
-done
+# Calculate 3D similarity
+python calc_3D_sim.py --ref "building_blocks.oeb" --test "building_blocks.oeb"
