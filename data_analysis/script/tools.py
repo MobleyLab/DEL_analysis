@@ -627,7 +627,6 @@ def gen_random_cluster(bb_pactive, bb_pos):
     return BB
 
 def plot_cluster_pactive(bb_pactive, bb_random):
-    sns.reset_orig()
     fig = plt.figure(constrained_layout=True, figsize=(10, 6))
     subfigs = fig.subfigures(1, 2, wspace=0, hspace=0.01)
 
@@ -640,10 +639,11 @@ def plot_cluster_pactive(bb_pactive, bb_random):
         ax.set_ylim([0, 1])
         ax.set_ylabel("")
         ax.set_yticks([])
+        ax.patch.set_alpha(0.01)
         ax.spines[['left','right', 'top']].set_visible(False)
         subset = bb_pactive.loc[(bb_pactive['Cluster'] == index) & (bb_pactive['P(active)'] > 0)]
         if index != N-1:
-            ax.set_xticks([])
+            ax.tick_params(axis='x', which='both', bottom=False)
             sns.kdeplot(subset['P(active)'], ax=ax, color=bb_colors[index], fill=True, log_scale=True)
         else:
             sns.kdeplot(subset['P(active)'], ax=ax, color=bb_colors[index], fill=True, log_scale=True)
@@ -658,10 +658,12 @@ def plot_cluster_pactive(bb_pactive, bb_random):
         ax.set_ylim([0, 1])
         ax.set_ylabel("")
         ax.set_yticks([])
+        ax.minorticks_off()
+        ax.patch.set_alpha(0.01)
         ax.spines[['left','right', 'top']].set_visible(False)
         subset = bb_random.loc[(bb_random['Cluster'] == index) & (bb_random['P(active)'] > 0)]
         if index != N-1:
-            ax.set_xticks([])
+            ax.tick_params(axis='x', which='both', bottom=False)
             sns.kdeplot(subset['P(active)'], ax=ax, color=bb_colors[index], fill=True, log_scale=True)
         else:
             sns.kdeplot(subset['P(active)'], ax=ax, color=bb_colors[index], fill=True, log_scale=True)
