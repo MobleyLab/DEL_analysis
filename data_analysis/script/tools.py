@@ -423,6 +423,15 @@ def plot_hdbscan(bb_pactive, params, transform):
     plt.show()
     return bb_pactive
 
+def get_ticks(n_bb):
+    N = 10
+    i = 1
+    while len(np.arange(0.5, n_bb+0.5, i)) > N:
+        i += 1
+    ticks = np.arange(0.5, n_bb+0.5, i)
+    labels = np.arange(0, n_bb, i)
+    return ticks, labels
+
 def plot_cluster_combos(total_compounds, bb1_pactive, bb2_pactive, bb3_pactive, trans_bb1, trans_bb2, trans_bb3):
     clustered_bb1 = bb1_pactive.loc[bb1_pactive['Cluster'] > -1]
     clustered_bb1 = clustered_bb1.rename(columns={'Cluster': 'bb1_Cluster'})
@@ -446,7 +455,7 @@ def plot_cluster_combos(total_compounds, bb1_pactive, bb2_pactive, bb3_pactive, 
 
     ac = total_merged.groupby(['bb1_Cluster', 'bb3_Cluster'], as_index=False)['active'].mean()
     top_ac = ac.sort_values(by='active', ascending=False).head(10)
-    
+
     n_bb1 = len(np.unique(bb1_pactive['Cluster']))-1
     n_bb2 = len(np.unique(bb2_pactive['Cluster']))-1
     n_bb3 = len(np.unique(bb3_pactive['Cluster']))-1
@@ -461,11 +470,11 @@ def plot_cluster_combos(total_compounds, bb1_pactive, bb2_pactive, bb3_pactive, 
     bc_mat = np.ones((n_bb2, n_bb3))*-0.05
     for b2, b3, val in zip(bc['bb2_Cluster'], bc['bb3_Cluster'], bc['active']):
         bc_mat[b2, b3] = val
-    
+
     bb1_size = [normalize_range(0, np.max(bb1_pactive['P(active)']), 1, 50, x) for x in bb1_pactive['P(active)']]
     bb2_size = [normalize_range(0, np.max(bb2_pactive['P(active)']), 1, 50, x) for x in bb2_pactive['P(active)']]
     bb3_size = [normalize_range(0, np.max(bb3_pactive['P(active)']), 1, 50, x) for x in bb3_pactive['P(active)']]
-    
+
     bb1_colors = np.array(set_colors(bb1_pactive['Cluster']))
     bb2_colors = np.array(set_colors(bb2_pactive['Cluster']))
     bb3_colors = np.array(set_colors(bb3_pactive['Cluster']))
@@ -506,38 +515,45 @@ def plot_cluster_combos(total_compounds, bb1_pactive, bb2_pactive, bb3_pactive, 
     axs[0][2].set_ylabel('UMAP_2', fontsize=12, labelpad=5)
 
     val_max = np.max(np.concatenate([ab['active'], ac['active'], bc['active']]))
+    inc = 0.1
+    disp_max = (val_max // inc) * inc + inc
 
     cbar_ax = fig.add_axes([.92, .125, .015, .23])
-    ax = sns.heatmap(ab_mat, vmin=-0.05, vmax=val_max, ax=axs[1][0], cmap='viridis', cbar_ax=cbar_ax,)
-    axs[1][0].set_xticks(np.arange(0.5, 5.5))
-    axs[1][0].set_xticklabels(np.arange(5), fontsize=14)
-    axs[1][0].set_yticks(np.arange(0.5, 9.5))
-    axs[1][0].set_yticklabels(np.arange(9), fontsize=14, rotation=0)
-    axs[1][0].set_ylabel('$p_1$ cluster id', fontsize=18, labelpad=10)
+    bb1_ticks, bb1_labels = get_ticks(n_bb1)
+    bb2_ticks, bb2_labels = get_ticks(n_bb2)
+    bb3_ticks, bb3_labels = get_ticks(n_bb3)
+    ax = sns.heatmap(ab_mat, vmin=-inc, vmax=disp_max, ax=axs[1][0], cmap='viridis', cbar_ax=cbar_ax,)
+    axs[1][0].set_xticks(bb2_ticks)
+    axs[1][0].set_xticklabels(bb2_labels, fontsize=14)
+    axs[1][0].set_yticks(bb1_ticks)
+    axs[1][0].set_yticklabels(bb1_labels, fontsize=14, rotation=0)
     axs[1][0].set_xlabel('$p_2$ cluster id', fontsize=18, labelpad=10)
+    axs[1][0].set_ylabel('$p_1$ cluster id', fontsize=18, labelpad=10)
 
-    sns.heatmap(ac_mat, vmin=-0.05, vmax=val_max, ax=axs[1][1], cmap='viridis', cbar_ax=cbar_ax)
-    axs[1][1].set_xticks(np.arange(0.5, 27.5, 2))
-    axs[1][1].set_xticklabels(np.arange(0, 27, 2), fontsize=14, rotation=0)
-    axs[1][1].set_yticks(np.arange(0.5,9.5))
-    axs[1][1].set_yticklabels(np.arange(9), fontsize=14, rotation=0)
+    sns.heatmap(ac_mat, vmin=-inc, vmax=disp_max, ax=axs[1][1], cmap='viridis', cbar_ax=cbar_ax)
+    axs[1][1].set_xticks(bb3_ticks)
+    axs[1][1].set_xticklabels(bb3_labels, fontsize=14, rotation=0)
+    axs[1][1].set_yticks(bb1_ticks)
+    axs[1][1].set_yticklabels(bb1_labels, fontsize=14, rotation=0)
     axs[1][1].set_xlabel('$p_3$ cluster id', fontsize=18, labelpad=10)
     axs[1][1].set_ylabel('$p_1$ cluster id', fontsize=18, labelpad=10)
 
-    sns.heatmap(bc_mat, vmin=-0.05, vmax=val_max, ax=axs[1][2], cmap='viridis', cbar_ax=cbar_ax)
-    axs[1][2].set_xticks(np.arange(0.5, 27.5, 2))
-    axs[1][2].set_xticklabels(np.arange(0, 27, 2), fontsize=14, rotation=0)
-    axs[1][2].set_yticks(np.arange(0.5,5.5))
-    axs[1][2].set_yticklabels(np.arange(5), fontsize=14, rotation=0)
+    sns.heatmap(bc_mat, vmin=-inc, vmax=disp_max, ax=axs[1][2], cmap='viridis', cbar_ax=cbar_ax)
+    axs[1][2].set_xticks(bb3_ticks)
+    axs[1][2].set_xticklabels(bb3_labels, fontsize=14, rotation=0)
+    axs[1][2].set_yticks(bb2_ticks)
+    axs[1][2].set_yticklabels(bb2_labels, fontsize=14, rotation=0)
     axs[1][2].set_xlabel('$p_3$ cluster id', fontsize=18, labelpad=10)
     axs[1][2].set_ylabel('$p_2$ cluster id', fontsize=18, labelpad=10)
 
     cbar = ax.collections[0].colorbar
-    cbar.set_ticks(np.arange(-0.05, 0.45, 0.05))
-    labels = [f'{x:.2f}' for x in np.arange(0, 0.45, 0.05)]
+
+    cbar.set_ticks(np.arange(-inc, disp_max+inc, inc))
+    labels = [f'{x:.2f}' for x in np.arange(0, disp_max+inc, inc)]
     cbar.set_ticklabels(['no data'] + labels)
     cbar.ax.tick_params(labelsize='x-large')
-
+    cbar.ax.set_ylabel('probability', fontsize=16)
+    
     return ab_mat, ac_mat, bc_mat
 
 # Get one representative structure for each cluster
