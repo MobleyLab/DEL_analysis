@@ -1,17 +1,20 @@
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from matplotlib.patches import Polygon
-from IPython.display import display, Image
-import mols2grid
-import umap
 import hdbscan
+from IPython.display import display, Image
+from matplotlib.patches import Polygon
+import matplotlib.pyplot as plt
+import mols2grid
+import mpld3
+import numpy as np
+import oenotebook as oenb
+from openeye import oechem
+import pandas as pd
 from rdkit import Chem
 from rdkit.Chem import AllChem, Draw, rdFMCS
 from scipy.spatial import distance_matrix
 import seaborn as sns
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, \
     precision_score, recall_score, pairwise_distances
+import umap
 
 def calc_pactive(data, bb_pos):
     data['active'] = [0 if x == 0 else 1 for x in data['read_count']]
@@ -422,6 +425,26 @@ def plot_hdbscan(bb_pactive, params, transform):
     axs.set_title(f'Number of Clusters: {len(np.unique(cluster.labels_))-1}\nNoise points: {np.unique(cluster.labels_, return_counts=True)[1][0]}')
     plt.show()
     return bb_pactive
+
+def smiles_to_oemol(smi):
+    mol = oechem.OEMol()
+    oechem.OEParseSmiles(mol, smi)
+    return mol
+
+def plot_hdbscan_interactive(bb_pactive, params, transform, bb_pos):
+    fig, axs = plt.subplots(figsize=(7,7))
+    cluster = hdbscan.HDBSCAN(min_cluster_size=params[0], min_samples=params[1], metric='euclidean', gen_min_span_tree=True, 
+                          allow_single_cluster=False, prediction_data=True).fit(transform.embedding_)
+    cluster_colors = set_colors(cluster.labels_)
+
+    sc = axs.scatter(transform.embedding_[:, 0], transform.embedding_[:, 1], color=cluster_colors[cluster.labels_], s=10)
+    axs.set_title(f'Number of Clusters: {len(np.unique(cluster.labels_))-1}\nNoise points: {np.unique(cluster.labels_, return_counts=True)[1][0]}')
+    bb_pactive['Molecule'] = [smiles_to_oemol(x) for x in bb_pactive[bb_pos]]
+    molImgs_hits = list(bb_pactive['Molecule'].apply(lambda x: oenb.draw_mol_to_img_tag(x, 300,200)))
+    tooltip = mpld3.plugins.PointHTMLTooltip(sc, molImgs_hits)
+    mpld3.plugins.connect(fig, tooltip)
+    
+    return mpld3.display(fig=fig)
 
 def get_ticks(n_bb):
     N = 10
