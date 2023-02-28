@@ -1,9 +1,12 @@
 import argparse
 import hdbscan
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from rdkit import Chem, DataStructs
 from rdkit.Chem import AllChem
+from scipy.spatial import distance_matrix
+import seaborn as sns
 from sklearn import tree
 from sklearn.metrics import auc, confusion_matrix, ConfusionMatrixDisplay, \
     precision_score, recall_score, precision_recall_curve, pairwise_distances
@@ -43,6 +46,12 @@ def calc_pactive(data, bb_train, bb_pos):
     val = data.groupby([bb_pos], as_index=False)['active'].mean()
     merged = pd.merge(bb_train, val, on=bb_pos).rename(columns={'active': 'P(active)'})
     return merged
+
+def match(bb_train, ref_path, bb_pos):
+    ref_list = pd.read_csv(ref_path).reset_index()
+    itd = pd.merge(bb_train, ref_list, left_on=bb_pos, right_on='SMILES', how='left')
+    bb_ind = np.array(itd['index'])
+    return bb_ind
 
 def gen_ecfp6(SMILES):
     '''
@@ -104,6 +113,100 @@ def assign_coords(bb_df, umap_dist):
     bb_df['Y'] = umap_dist[:, 1]
     return bb_df
 
+def normalize_range(OldMin, OldMax, NewMin, NewMax, OldValue):
+    OldRange = (OldMax - OldMin)  
+    NewRange = (NewMax - NewMin)  
+    NewValue = (((OldValue - OldMin) * NewRange) / OldRange) + NewMin
+    return NewValue
+
+def plot_umap(bb1_pactive, bb2_pactive, bb3_pactive, trans_bb1, trans_bb2, trans_bb3):
+    bb1_size = [normalize_range(0, np.max(bb1_pactive['P(active)']), 1, 50, x) for x in bb1_pactive['P(active)']]
+    bb2_size = [normalize_range(0, np.max(bb2_pactive['P(active)']), 1, 50, x) for x in bb2_pactive['P(active)']]
+    bb3_size = [normalize_range(0, np.max(bb3_pactive['P(active)']), 1, 50, x) for x in bb3_pactive['P(active)']]
+
+    bb1_alpha = [normalize_range(0, np.max(bb1_pactive['P(active)']), 0.1, 1, x) for x in bb1_pactive['P(active)']]
+    bb2_alpha = [normalize_range(0, np.max(bb2_pactive['P(active)']), 0.3, 1, x) for x in bb2_pactive['P(active)']]
+    bb3_alpha = [normalize_range(0, np.max(bb3_pactive['P(active)']), 0.1, 1, x) for x in bb3_pactive['P(active)']]
+
+    bb1_colors = [[0.0, 0.0, 1, x] for x in bb1_alpha]
+    bb2_colors = [[1.0, 0.549, 0, x] for x in bb2_alpha]
+    bb3_colors = [[0.0, 0.50196, 0, x] for x in bb3_alpha]
+
+    fig, axs = plt.subplots(2, 3, dpi=150, figsize=(20,10), 
+                            gridspec_kw={'height_ratios': [3, 1]})
+    plt.subplots_adjust(wspace=0.25, hspace=0.35)
+    
+    bb1_pactive[['X','Y']] = trans_bb1.embedding_
+    bb2_pactive[['X','Y']] = trans_bb2.embedding_
+    bb3_pactive[['X','Y']] = trans_bb3.embedding_
+
+    axs[0][0].scatter(bb1_pactive['X'], bb1_pactive['Y'], s=bb1_size, color=bb1_colors)
+    axs[0][0].set_xlabel('UMAP_1', fontsize=14, labelpad=10)
+    axs[0][0].set_ylabel('UMAP_2', fontsize=14, labelpad=10)
+    axs[0][0].tick_params(axis='both', labelsize=12)
+
+    axs[0][1].scatter(bb2_pactive['X'], bb2_pactive['Y'], s=bb2_size, color=bb2_colors)
+    axs[0][1].set_xlabel('UMAP_1', fontsize=14, labelpad=10)
+    axs[0][1].set_ylabel('UMAP_2', fontsize=14, labelpad=10)
+    axs[0][1].tick_params(axis='both', labelsize=12)
+
+    axs[0][2].scatter(bb3_pactive['X'], bb3_pactive['Y'], s=bb3_size, color=bb3_colors)
+    axs[0][2].set_xlabel('UMAP_1', fontsize=14, labelpad=10)
+    axs[0][2].set_ylabel('UMAP_2', fontsize=14, labelpad=10)
+    axs[0][2].tick_params(axis='both', labelsize=12)
+    
+    bb1_dist_mat = distance_matrix(trans_bb1.embedding_, trans_bb1.embedding_)
+    bb2_dist_mat = distance_matrix(trans_bb2.embedding_, trans_bb2.embedding_)
+    bb3_dist_mat = distance_matrix(trans_bb3.embedding_, trans_bb3.embedding_)
+    
+    top_ind = bb1_pactive.sort_values(by='P(active)', ascending=False).head(10).index
+    rand_ind = bb1_pactive.sample(n=10, random_state=42).index
+    bb1_top = bb1_dist_mat[top_ind, :][:, top_ind]
+    bb1_rand = bb1_dist_mat[rand_ind, :][:, rand_ind]
+    bb1_top_rand = bb1_dist_mat[top_ind, :][:, rand_ind]
+    
+    top_ind = bb2_pactive.sort_values(by='P(active)', ascending=False).head(10).index
+    rand_ind = bb2_pactive.sample(n=10, random_state=42).index
+    bb2_top = bb2_dist_mat[top_ind, :][:, top_ind]
+    bb2_rand = bb2_dist_mat[rand_ind, :][:, rand_ind]
+    bb2_top_rand = bb2_dist_mat[top_ind, :][:, rand_ind]
+    
+    top_ind = bb3_pactive.sort_values(by='P(active)', ascending=False).head(10).index
+    rand_ind = bb3_pactive.sample(n=10, random_state=42).index
+    bb3_top = bb3_dist_mat[top_ind, :][:, top_ind]
+    bb3_rand = bb3_dist_mat[rand_ind, :][:, rand_ind]
+    bb3_top_rand = bb3_dist_mat[top_ind, :][:, rand_ind]
+
+    sns.kdeplot(bb1_top[np.triu_indices(10, k=1)], color='blue', ax=axs[1][0], linewidth=2)
+    sns.kdeplot(bb1_top_rand.ravel(), color='blue', linestyle='dotted', ax=axs[1][0], linewidth=3)
+    axs[1][0].set_xlim(left=0)
+    axs[1][0].tick_params(axis='both', which='major', labelsize=14)
+    axs[1][0].set_ylabel('Density', labelpad=15, fontsize=20)
+
+    sns.kdeplot(bb2_top[np.triu_indices(10, k=1)], color='darkorange', ax=axs[1][1], linewidth=2)
+    sns.kdeplot(bb2_top_rand.ravel(), color='darkorange', linestyle='dotted', ax=axs[1][1], linewidth=3)
+
+    axs[1][1].set_xlim(left=0)
+    axs[1][1].set_ylabel('')
+    axs[1][1].tick_params(axis='both', which='major', labelsize=14)
+
+    axs[1][1].set_xlabel('Distance', labelpad=15, fontsize=20)
+
+    sns.kdeplot(bb3_top[np.triu_indices(10, k=1)], color='green', ax=axs[1][2], linewidth=2)
+    sns.kdeplot(bb3_top_rand.ravel(), color='green', linestyle='dotted', ax=axs[1][2], linewidth=3)
+
+    axs[1][2].set_xlim(left=0)
+    axs[1][2].set_ylabel('')
+    axs[1][2].tick_params(axis='both', which='major', labelsize=14)
+
+    df = pd.DataFrame([[1, np.mean(bb1_top[np.triu_indices(10, k=1)]), np.mean(bb1_top_rand.ravel())],
+              [2, np.mean(bb2_top[np.triu_indices(10, k=1)]), np.mean(bb2_top_rand.ravel())],
+              [3, np.mean(bb3_top[np.triu_indices(10, k=1)]), np.mean(bb3_top_rand.ravel())]], 
+              columns=['Position', 'top - top dist', 'top - rand dist'])
+
+    display(df)
+    return bb1_pactive, bb2_pactive, bb3_pactive
+
 def intracluster_dist(df):
     dist_mat = pairwise_distances(df[['X', 'Y']])
     N = len(dist_mat)
@@ -113,7 +216,7 @@ def intracluster_dist(df):
 def obj(params):
     return params['n_noise'] + 10*params['icd']
 
-def optimal_hdbscan(bb_df, min_cluster=(3,61), min_samples=(1,21)):
+def optimal_hdbscan(bb_df, min_cluster=np.arange(3,61), min_samples=np.arange(1,21)):
     BB = bb_df.copy(deep=True)
     hdb_params = pd.DataFrame(columns=['min_cluster_size', 'min_samples', 'n_noise', 'icd'])
     for i in min_cluster:
@@ -147,6 +250,29 @@ def cluster(bb_df, opt_params):
                               gen_min_span_tree=True, allow_single_cluster=False, prediction_data=True).fit(coords)
 
     return clusterer, clusterer.labels_
+
+def set_colors(cluster_labels):
+    if np.sum(cluster_labels == -1) > 0:
+        color = plt.cm.rainbow(np.linspace(0, 1, len(set(cluster_labels))-1))
+        colors = np.vstack([color, [0.86, 0.86, 0.86, 1]])
+        return colors
+    else:
+        color = plt.cm.rainbow(np.linspace(0, 1, len(set(cluster_labels))))
+        return color
+    
+def plot_hdbscan(bb_pactive, params, transform, bb_test=None):
+    fig, axs = plt.subplots(figsize=(7,7))
+    cluster = hdbscan.HDBSCAN(min_cluster_size=params[0], min_samples=params[1], metric='euclidean', gen_min_span_tree=True, 
+                          allow_single_cluster=False, prediction_data=True).fit(transform.embedding_)
+
+    bb_pactive['Cluster'] = cluster.labels_
+    cluster_colors = set_colors(cluster.labels_)
+
+    axs.scatter(transform.embedding_[:, 0], transform.embedding_[:, 1], color=cluster_colors[cluster.labels_], s=10)
+    axs.set_title(f'Number of Clusters: {len(np.unique(cluster.labels_))-1}\nNoise points: {np.unique(cluster.labels_, return_counts=True)[1][0]}')
+    if isinstance(bb_test, type(None)) == False:
+        axs.scatter(bb_test['X'], bb_test['Y'], s=50, color=cluster_colors[bb_test['Cluster']], edgecolors='black')
+    return bb_pactive
 
 def predict_cluster(bb_umap, bb_clusterer, dist_mat, train_ind, test_ind):
     test_coords = bb_umap.transform(dist_mat[np.ix_(test_ind, train_ind)])

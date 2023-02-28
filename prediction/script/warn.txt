@@ -1,0 +1,15 @@
+/opt/anaconda3/envs/rdkit_env/lib/python3.7/site-packages/IPython/core/interactiveshell.py:3435: UserWarning: To exit: use 'exit', 'quit', or Ctrl-D.
+  warn("To exit: use 'exit', 'quit', or Ctrl-D.", stacklevel=1)
+/opt/anaconda3/envs/rdkit_env/lib/python3.7/site-packages/ipykernel_launcher.py:42: DeprecationWarning: The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.
+/opt/anaconda3/envs/rdkit_env/lib/python3.7/site-packages/umap/umap_.py:1780: UserWarning: using precomputed metric; inverse_transform will be unavailable
+  warn("using precomputed metric; inverse_transform will be unavailable")
+/opt/anaconda3/envs/rdkit_env/lib/python3.7/site-packages/umap/umap_.py:1780: UserWarning: using precomputed metric; inverse_transform will be unavailable
+  warn("using precomputed metric; inverse_transform will be unavailable")
+/opt/anaconda3/envs/rdkit_env/lib/python3.7/site-packages/umap/umap_.py:1780: UserWarning: using precomputed metric; inverse_transform will be unavailable
+  warn("using precomputed metric; inverse_transform will be unavailable")
+/opt/anaconda3/envs/rdkit_env/lib/python3.7/site-packages/umap/umap_.py:2831: UserWarning: Transforming new data with precomputed metric. We are assuming the input data is a matrix of distances from the new points to the points in the training set. If the input matrix is sparse, it should contain distances from the new points to their nearest neighbours or approximate nearest neighbours in the training set.
+  "Transforming new data with precomputed metric. "
+/opt/anaconda3/envs/rdkit_env/lib/python3.7/site-packages/umap/umap_.py:2831: UserWarning: Transforming new data with precomputed metric. We are assuming the input data is a matrix of distances from the new points to the points in the training set. If the input matrix is sparse, it should contain distances from the new points to their nearest neighbours or approximate nearest neighbours in the training set.
+  "Transforming new data with precomputed metric. "
+/opt/anaconda3/envs/rdkit_env/lib/python3.7/site-packages/umap/umap_.py:2831: UserWarning: Transforming new data with precomputed metric. We are assuming the input data is a matrix of distances from the new points to the points in the training set. If the input matrix is sparse, it should contain distances from the new points to their nearest neighbours or approximate nearest neighbours in the training set.
+  "Transforming new data with precomputed metric. "
