@@ -2,8 +2,8 @@
 
 ## What's here:
 ### input
-- `bb_{1..3}.csv`: files of SMILES of all unique building blocks for each library position
-- `bb_{1..3}.npy`: array containing pairwise similarity scores of building blocks in each position
+- `bb_{1..3}_list.csv`: files of SMILES of all unique building blocks for each library position
+- `bb_{1..3}_list_mod.npy`: array containing pairwise similarity scores of building blocks in each position
 
 ### script
 - `analysis.ipynb`: notebook outlining analysis from paper with additional visualizations
