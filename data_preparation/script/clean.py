@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
-from openeye import oechem
-#from openeye import oechem
+import pickle
+from openeye import oechem, oeomega
 
 def update_df(df, drop_ind):
     return df.drop(index=drop_ind)
@@ -133,7 +133,35 @@ def deprotect_bbs(all_bbs):
     deprot_bbs = return_deprotect(all_bbs, PG_SMILES, SMIRKS_patterns)
     return deprot_bbs
 
-def output_files(hits_updated, inactives_updated, deprot_bbs):
+def isoSMILES(smiles):
+    mol = oechem.OEMol()
+    oechem.OESmilesToMol(mol, smiles)
+    return oechem.OEMolToSmiles(mol)
+
+def drop_dup(bb_list):
+    bb_list['rank'] = bb_list.groupby(['iso_SMILES'], as_index=False)['SMILES'].cumcount()
+    return bb_list.loc[bb_list['rank'] == 0].drop(columns='rank')
+
+def repeat_bbs(bb_SMILES):
+    '''For when both flat structure and stereoisomer are reported'''
+    repeat_dict = {}
+    for smi in bb_SMILES:
+        mol = oechem.OEMol()
+        oechem.OESmilesToMol(mol, smi)
+        for nmol in oeomega.OEFlipper(mol):
+            stereo_name = oechem.OEMolToSmiles(nmol)
+            has_match = len((np.where(bb_SMILES == stereo_name)[0]))
+            if (has_match > 0) & (smi != stereo_name):
+                repeat_dict[smi] = stereo_name
+    return repeat_dict
+
+def keep_ind(bb_pactive, repeat_bb_dict):
+    bb_remove = pd.DataFrame(list(repeat_bb_dict.keys()), columns=['iso_SMILES'])
+    itd = pd.merge(bb_pactive, bb_remove, how='left', indicator=True)
+    bb_keep = list(itd.loc[itd['_merge'] == 'left_only'].index)
+    return bb_keep
+
+def total_concat(hits_updated, inactives_updated, deprot_bbs):
     total = pd.concat([hits_updated, inactives_updated]).drop(columns=['RANK']).reset_index(drop=True)
     total_deprot = pd.merge(total[['bb1', 'bb2', 'bb3', 'structure', 'read_count']], deprot_bbs[['SMILES', 'deprot_SMILES']], how='left', left_on='bb1', right_on='SMILES')\
         .drop(columns=['SMILES', 'bb1']).rename(columns={'deprot_SMILES': 'bb1'})\
@@ -141,28 +169,64 @@ def output_files(hits_updated, inactives_updated, deprot_bbs):
         .drop(columns=['SMILES', 'bb2']).rename(columns={'deprot_SMILES': 'bb2'})\
         .merge(deprot_bbs[['SMILES', 'deprot_SMILES']], left_on='bb3', how='left', right_on='SMILES')\
         .drop(columns=['SMILES', 'bb3']).rename(columns={'deprot_SMILES': 'bb3'})
-
-    bb1_list = pd.DataFrame({'SMILES': np.unique(total_deprot['bb1'])})
-    bb2_list = pd.DataFrame({'SMILES': np.unique(total_deprot['bb2'])})
-    bb3_list = pd.DataFrame({'SMILES': np.unique(total_deprot['bb3'])})
-
-    total_deprot.to_csv('../output/total_compounds.csv', index=False)
-    bb1_list.to_csv('../output/bb1_list.csv', index=False)
-    bb2_list.to_csv('../output/bb2_list.csv', index=False)
-    bb3_list.to_csv('../output/bb3_list.csv', index=False)
-    return True
+    return total_deprot
 
 def main():
+    # Load in dataframes from experimental runs
     hits = pd.read_csv('../input/del_hits.csv')
     inactives = pd.read_csv('../input/del_inactives.csv')
-
+    
+    # Clean active and inactive compounds
     cleaned_hits = clean_hits(hits)
     cleaned_inactives = clean_inactives(inactives)
 
+    # Deprotect building blocks in data
     all_bbs = get_all_bbs(cleaned_hits, cleaned_inactives)
-
     deprot_bbs = deprotect_bbs(all_bbs)
-    output_files(cleaned_hits, cleaned_inactives, deprot_bbs)
+    
+    # Organize data into new dataframe
+    total_comp = total_concat(cleaned_hits, cleaned_inactives, deprot_bbs)
+
+    # Make dataframe of building blocks at each position
+    bb1_list = pd.DataFrame({'SMILES': np.unique(total_comp['bb1'])})
+    bb2_list = pd.DataFrame({'SMILES': np.unique(total_comp['bb2'])})
+    bb3_list = pd.DataFrame({'SMILES': np.unique(total_comp['bb3'])})
+
+    # Generate isomeric SMILES for each building block
+    bb1_list['iso_SMILES'] = bb1_list['SMILES'].apply(lambda x: isoSMILES(x))
+    bb2_list['iso_SMILES'] = bb2_list['SMILES'].apply(lambda x: isoSMILES(x))
+    bb3_list['iso_SMILES'] = bb3_list['SMILES'].apply(lambda x: isoSMILES(x))
+
+    # Identify duplicate building blocks at each position
+    bb1_list = drop_dup(bb1_list)
+    bb2_list = drop_dup(bb2_list)
+    bb3_list = drop_dup(bb3_list)
+
+    # Find building blocks that are duplicated with both unspecified and specified stereochemistry
+    repeat_bb1 = repeat_bbs(bb1_list['iso_SMILES'])
+    repeat_bb2 = repeat_bbs(bb2_list['iso_SMILES'])
+    repeat_bb3 = repeat_bbs(bb3_list['iso_SMILES'])
+
+    # Get index of building blocks to keep
+    bb1_keep_ind = keep_ind(bb1_list, repeat_bb1)
+    bb2_keep_ind = keep_ind(bb2_list, repeat_bb2)
+    bb3_keep_ind = keep_ind(bb3_list, repeat_bb3)
+
+    # Update building blocks at each position
+    bb1_new = bb1_list.iloc[bb1_keep_ind].reset_index(drop=True)
+    bb2_new = bb2_list.iloc[bb2_keep_ind].reset_index(drop=True)
+    bb3_new = bb3_list.iloc[bb3_keep_ind].reset_index(drop=True)
+    
+    # Update total compounds
+    total_compounds = total_comp.merge(bb1_new, left_on=['bb1'], right_on=['SMILES']).drop(columns=['SMILES']).rename(columns={'iso_SMILES': 'bb1_iso'})\
+    .merge(bb2_new, left_on=['bb2'], right_on=['SMILES']).drop(columns=['SMILES']).rename(columns={'iso_SMILES': 'bb2_iso'})\
+    .merge(bb3_new, left_on=['bb3'], right_on=['SMILES']).drop(columns=['SMILES']).rename(columns={'iso_SMILES': 'bb3_iso'})
+                      
+    # Save files
+    bb1_new.to_csv('../output/bb1_list.csv', index=False)
+    bb2_new.to_csv('../output/bb2_list.csv', index=False)
+    bb3_new.to_csv('../output/bb3_list.csv', index=False)
+    total_compounds.to_csv('../output/total_compounds.csv', index=False)
 
 if __name__ == "__main__":
     main()
