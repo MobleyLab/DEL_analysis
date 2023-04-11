@@ -7,7 +7,6 @@ import argparse
 import clean_3D_sim_matrix
 import tools
 
-# No matrix cleaning step in this one compared to the original script
 def calc_3D_sim(ref, test):
     '''
     Inputs
