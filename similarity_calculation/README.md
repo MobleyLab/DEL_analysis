@@ -1,14 +1,23 @@
 # similarity_calculation
 
 ## What's here:
-### input
-- `bb_{1..3}_list.csv`: SMILES of all unique building blocks for each library position 
-
 ### script
 - `gen_conf.py`: script to generate conformers for a set of input SMILES using OpenEye's OMEGA
 - `calc_3D_sim.py`: script to calculate 3D Tanimoto combo using OpenEye's FastROCS
 - `clean_3D_sim_matrix.py`: script to select the best scoring stereoisomer for molecules with unspecified stereochemistry
-- `run_3D.sh`: sample job submission script
 
 ### output
-- `bb_{1..3}_list.npy`: arrays containing pairwise 3D Tanimoto combo scores for each building block position
+- `bb{1..3}_list.oeb`: OpenEye binary file of generated conformers for the building blocks at each position
+- `bb{1..3}_list.npy`: arrays containing pairwise 3D Tanimoto combo scores for each building block position
+
+## Procedure
+Following data curation, we generate conformers for the building blocks at each position of the library. These conformers are then used to calculate 3D Tanimoto combo scores for each building block position. This procedure needs to be repeated for each position of the library.
+  
+```python
+# Generate conformers
+python gen_conf.py --infile "bb_list.csv"
+
+# Calculate 3D similarity
+python calc_3D_sim.py --ref "bb_list.oeb" --test "bb_list.oeb"
+```
+The output includes OpenEye binary files which store all the generated conformers for each building block and NumPy arrays with the 3D Tanimoto combo scores for the building blocks in each position, which is needed for data analysis.
