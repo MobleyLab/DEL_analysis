@@ -2,7 +2,7 @@
 
 ## What's here:
 ### input
-- `bb_{1..3}.csv`: SMILES of all unique building blocks for each library position 
+- `bb_{1..3}_list.csv`: SMILES of all unique building blocks for each library position 
 
 ### script
 - `gen_conf.py`: script to generate conformers for a set of input SMILES using OpenEye's OMEGA
@@ -11,4 +11,4 @@
 - `run_3D.sh`: sample job submission script
 
 ### output
-- `bb_{1..3}.npy`: arrays containing pairwise 3D Tanimoto combo scores for each building block position
+- `bb_{1..3}_list.npy`: arrays containing pairwise 3D Tanimoto combo scores for each building block position
