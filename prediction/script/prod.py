@@ -886,7 +886,6 @@ def parse_args():
     my_parser = argparse.ArgumentParser(description="calculates AUC of model")
     my_parser.add_argument('--seed', type=int, help='random seed with which to initialize run', required=True)
     my_parser.add_argument('--frac', type=float, help='fraction of building blocks to keep in the training set', required=True)
-    my_parser.add_argument('--sim', type=str, help='whether to use 2D or 3D similarity', required=True)
     args = my_parser.parse_args()
     return args
 
@@ -896,7 +895,6 @@ def main():
     args = parse_args()
     seed_val = args.seed
     train_frac = args.frac
-    sim_type = args.sim
     df = pd.read_csv('../data_preparation/output/total_compounds.csv')
     
     # Identify all unique building blocks at each position
