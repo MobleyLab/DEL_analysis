@@ -452,9 +452,9 @@ def plot_2D_bins(total_complete, bb1_pactive, bb2_pactive, bb3_pactive, all_bins
     
     return val_1_2[-B:, :A], val_1_3[:C, :A], val_2_3[:C, :B]
 
-def gen_ecfp6(SMILES):
+def gen_morgan(SMILES):
     '''
-    Generates ECFP6 fingerprint for the inputted molecule SMILES
+    Generates Morgan fingerprints for the input molecule SMILES
 
     Input
     -----
@@ -464,7 +464,7 @@ def gen_ecfp6(SMILES):
     Output
     ------
     set_fps : RDKit sparse vector
-        ECFP fingerprint for the compound
+        Morgan fingerprint for the compound
     '''
     if type(SMILES) == str:
         mol = Chem.MolFromSmiles(SMILES)
@@ -474,7 +474,7 @@ def gen_ecfp6(SMILES):
         set_fps = [AllChem.GetMorganFingerprint(mol, 3, useCounts=False) for mol in set_mols]
     return set_fps
 
-def ecfp6_tanimoto_matrix(row_fps, column_fps):
+def tanimoto_matrix(row_fps, column_fps):
     '''
     Calculates pairwise matrix of Tanimoto scores for the fingerprints provided
 
@@ -511,9 +511,9 @@ def calc_dist_mat(row_SMILES, col_SMILES):
     distance_matrix : array
         array with the inverse of the pairwise 2D Tanimoto similarity between molecules
     '''
-    bb_row_fps = [gen_ecfp6(smi) for smi in row_SMILES]
-    bb_col_fps = [gen_ecfp6(smi) for smi in col_SMILES]
-    bb_sim = ecfp6_tanimoto_matrix(bb_row_fps, bb_col_fps)
+    bb_row_fps = [gen_morgan(smi) for smi in row_SMILES]
+    bb_col_fps = [gen_morgan(smi) for smi in col_SMILES]
+    bb_sim = tanimoto_matrix(bb_row_fps, bb_col_fps)
     distance_matrix = 1 - bb_sim
     return distance_matrix
 
