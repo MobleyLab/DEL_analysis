@@ -4,7 +4,8 @@ import pickle
 from openeye import oechem, oeomega
 
 def update_df(df, drop_ind):
-    return df.drop(index=drop_ind)
+    new_df = df.drop(index=drop_ind)
+    return new_df
 
 def find_bad_bbs(df):
     return set(df.loc[df['bb3'] == 'NC1[C@H]2CC3C[C@H]1CC(O)(C3)C2'].index)

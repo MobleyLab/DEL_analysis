@@ -11,8 +11,7 @@ Associated code and files for different procedures are separated into distinct d
 - `data_analysis`: analyze the data from an experimental DEL screen
 - `prediction`: predict the activity of new compounds using previous experimental information
 - `SI`: additional figures and analysis 
-- `local.txt`: conda environment file for local machine
-- `gpu.txt`: environment file for high performance computing cluster
+- `environment.yml`: environment file
 
 ### Requirements
 The content here relies primarily on open-source tools and we provide files to reproduce the environments we used to run the analyses. Some materials require an OpenEye license, which is free for academics. 
