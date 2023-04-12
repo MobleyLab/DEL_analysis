@@ -15,7 +15,7 @@
 - `bb{1..3}_list.csv`: files containing SMILES of all unique building blocks for each library position
 
 ## Procedure
-To curate input files after experiment, simply run the following command:
+The script `clean.py` runs through all steps we performed to curate our DEL data after experiment.
 ```python
 # curate input files after experiment
 python clean.py
