@@ -1,5 +1,6 @@
 # DEL_analysis
 This repository provides relevant code and files to reproduce the analysis from our paper: <add paper DOI>. 
+DOI: [![DOI](https://zenodo.org/badge/594168758.svg)](https://zenodo.org/badge/latestdoi/594168758)
 
 ### Organization
 #### Overall layout
