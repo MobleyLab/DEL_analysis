@@ -537,6 +537,43 @@ def dist_mat(sim_mat):
     np.fill_diagonal(dist_mat, 0)
     return dist_mat
 
+def get_dist_bins(bb_pactive, trans_bb, bb_dist, bb_pos):
+    '''
+    Calculates the average distance between building blocks in the same P(active) bin.
+    
+    Input
+    -----
+    bb_pactive : dataframe
+        contains the SMILES, P(active) value and corresponding P(active) bin for each building block
+    
+    trans_bb : UMAP object
+        object that assigns 2D UMAP coordinates for each building block
+        
+    bb_dist : array
+        matrix of pairwise distances between building blocks at a given position
+        
+    bb_pos : string
+        specifies which building position to evaluate; options are "bb1", "bb2" or "bb3"
+        
+    Output
+    ------
+    dist_arr : array
+        returns Tanimoto distance and UMAP distance between building blocks in the same P(active) bin
+    '''
+    inds = np.triu_indices(len(bb_pactive), k=1)
+    bb_dist_umap = distance_matrix(trans_bb.embedding_, trans_bb.embedding_)
+    N = len(np.unique(bb_pactive[f'{bb_pos}_bins']))
+    dist_arr = np.zeros((N+1, 2))
+    for i in range(N):
+        bb_bin = list(bb_pactive.loc[bb_pactive[f'{bb_pos}_bins'] == i].index)
+        bin_inds = np.triu_indices(len(bb_bin), k=1)
+        dist_arr[i, 0] = np.mean(bb_dist[bb_bin, :][:, bb_bin][bin_inds])
+        dist_arr[i, 1] = np.mean(bb_dist_umap[bb_bin, :][:, bb_bin][bin_inds])
+        
+    dist_arr[-1, 0] = np.mean(bb_dist[inds])
+    dist_arr[-1, 1] = np.mean(bb_dist_umap[inds])
+    return dist_arr
+
 def umap_transform(dist_mat):
     '''
     Creates a UMAP object to generate 2D coordinates from a pairwise distance matrix.
