@@ -1,0 +1,12 @@
+name: del_analysis_env
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - numpy
+  - pandas
+  - rdkit
+  - openeye-toolkits
+  - matplotlib
+  - hdbscan
+  - umap-learn
