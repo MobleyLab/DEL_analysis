@@ -10,6 +10,7 @@
 ### output
 - `bb{1..3}_list.oeb`: OpenEye binary file of generated conformers for the building blocks at each position
 - `bb{1..3}_list.npy`: arrays containing pairwise 3D Tanimoto combo scores for each building block position
+- `bb{1..3}_sim_2D.npy`: arrays containing pairwise 2D Tanimoto combo scores for each building block position`
 
 ## Procedure
 Following data curation, we generate conformers for the building blocks at each position of the library. These conformers are then used to calculate 3D Tanimoto combo scores for each building block position. This procedure needs to be repeated for each position of the library.

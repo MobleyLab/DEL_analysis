@@ -10,6 +10,7 @@ import seaborn as sns
 from sklearn import tree
 from sklearn.metrics import auc, confusion_matrix, ConfusionMatrixDisplay, \
     precision_score, recall_score, precision_recall_curve, pairwise_distances
+from sklearn.model_selection import cross_val_score
 import umap
 import warnings
 
@@ -121,6 +122,32 @@ def update_bbs(train, bb_train, bb_test, bb_pos):
     bb_train_updated = pd.DataFrame(new_bbs, columns=[bb_pos])
     bb_test_updated = pd.concat([bb_test, pd.Series(bb_update, name=bb_pos).to_frame()], ignore_index=True)
     return bb_train_updated, bb_test_updated
+
+def train_test_split_by_compound(df, frac, seed=0):
+    '''
+    Splits data into randomized train and test sets. 
+    
+    Input
+    -----
+    df : dataframe
+        dataframe containing SMILES of full compounds
+        
+    frac : float
+        fraction of compounds to keep in the training set
+        
+    seed : int
+        value of the random seed
+    
+    Output
+    ------
+    train, test : dataframe
+        dataframes containing compounds in the train and test set, respectively
+    '''
+    train = df.sample(frac=frac, replace=False, random_state=seed)
+    itd = pd.merge(df, train['structure'], how='left', indicator=True)
+    test = itd.loc[itd['_merge'] == 'left_only']
+    test = test.drop(columns=['_merge']).reset_index()
+    return train, test
 
 def calc_pactive(data, bb_train, bb_pos):
     '''
@@ -839,6 +866,47 @@ def create_tree(train, seed, depth=5):
     decision_tree = tree.DecisionTreeClassifier(random_state=seed, max_depth=depth)
     decision_tree = decision_tree.fit(train_features, train_targets)
     return decision_tree
+
+def cv_trees(X, y, k_fold, tree_depths, scoring):
+    '''
+    Performs 5-fold cross validation to determine the optimal decision tree depth. 
+    Code adapted from: https://towardsdatascience.com/how-to-find-decision-tree-depth-via-cross-validation-2bf143f0f3d6
+
+    Input
+    -----
+    X : dataframe
+        dataframe of features for each point to input into the decision tree model
+
+    y : array
+        array with the binary label for each point
+        
+    k_fold : int
+        value specifying the number of cross-validation folds to use
+        
+    tree_depths : array
+        range of decision tree depths to evaluate
+        
+    scoring : string
+        metric to evaluate cross validation performance on; options are "precision" and "recall"
+    
+    Output
+    ------
+    train_results : array
+        value of the metric on the training data for each tree depth
+        
+    cv_results : array
+        mean value and standard deviation of the metric across k_folds for each tree depth
+    '''
+    train_results = np.zeros(len(tree_depths))
+    cv_results = np.zeros((len(tree_depths), 2))
+    for index, depth in enumerate(tree_depths):
+        dt = tree.DecisionTreeClassifier(max_depth=depth)
+        train_results[index] = dt.fit(X,y).score(X,y)
+        cv_score = cross_val_score(dt, X, y, cv=k_fold, scoring=scoring)
+        cv_results[index, 0] = np.mean(cv_score)
+        cv_results[index, 1] = np.std(cv_score)
+        
+    return train_results, cv_results
 
 def predict_activity(data, tree):
     '''
