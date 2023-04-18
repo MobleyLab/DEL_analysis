@@ -3,7 +3,6 @@
 ## What's here:
 ### script
 - `gen_conf.py`: script to generate conformers for a set of input SMILES using OpenEye's OMEGA
-- `calc_2D_sim.py`: script to calculate 2D Tanimoto scores using RDKit
 - `calc_3D_sim.py`: script to calculate 3D Tanimoto combo using OpenEye's FastROCS
 - `clean_3D_sim_matrix.py`: script to select the best scoring stereoisomer for molecules with unspecified stereochemistry
 
