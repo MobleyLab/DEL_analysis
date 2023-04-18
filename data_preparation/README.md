@@ -2,8 +2,8 @@
 
 ## What's here:
 ### input
-- `del_hits.csv.zip`: zipped file with SMILES of experimentally determined hits and associated read counts
-- `del_inactives.csv.zip`: zipped file with SMILES of experimentally determined inactives
+- `del_hits.csv`: file with SMILES of experimentally determined hits and associated read counts
+- `del_inactives.csv`: file with SMILES of experimentally determined inactives
 - `PG_SMILES.pkl`: contains the SMILES for the protecting groups present in the data
 - `deprot_SMIRKS.pkl`: contains SMIRKS patterns to deprotect building blocks 
 
@@ -11,7 +11,7 @@
 - `clean.py`: script to clean data and output datasets necessary for further analysis
 
 ### output
-- `total_compounds.csv.zip`: zipped file of all cleaned DEL compounds
+- `total_compounds.csv`: file of all cleaned DEL compounds
 - `bb{1..3}_list.csv`: files containing SMILES of all unique building blocks for each library position
 
 ## Procedure
