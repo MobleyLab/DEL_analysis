@@ -22,15 +22,15 @@ def customwarn(message, category, filename, lineno, file=None, line=None):
 def unique_bb(df, bb_pos):
     '''
     Gets all the unique building blocks at a specified building block position.
-    
+
     Input
     -----
     df : dataframe
         dataframe of all compounds and SMILES of their constituent building blocks
-        
+
     bb_pos : string
         string to specify which building block position; can be either "bb1", "bb2" or "bb3"
-    
+
     Output
     ------
     bb_unique : array
@@ -42,21 +42,21 @@ def unique_bb(df, bb_pos):
 def sample_bb(unique_bbs, bb_pos, frac, seed):
     '''
     Samples a random fraction of building blocks.
-    
+
     Input
     -----
     unique_bbs : array
         contains all possible building blocks to sample from
-        
+
     bb_pos : string
         string to specify which building block position; can be either "bb1", "bb2" or "bb3"
-    
+
     frac : float
         fraction of unique building blocks to keep in the training set
-        
+
     seed : int
         value of the random seed
-    
+
     Output
     ------
     train_df, test_df : dataframe
@@ -74,15 +74,15 @@ def sample_bb(unique_bbs, bb_pos, frac, seed):
 def train_test_set(df, bb1_train, bb2_train, bb3_train):
     '''
     Creates train and test sets of full compounds based on sampled building blocks.
-    
+
     Input
     -----
     df : dataframe
         dataframe of all compounds to be analyzed
-        
+
     bb1_train, bb2_train, bb3_train : dataframe
         dataframes corresponding to the training set building blocks at each position
-    
+
     Output
     ------
     train, test : dataframe
@@ -96,21 +96,21 @@ def train_test_set(df, bb1_train, bb2_train, bb3_train):
 def update_bbs(train, bb_train, bb_test, bb_pos):
     '''
     Updates list of train and test set building blocks based on the train and test sets created.
-    
+
     Input
     -----
     train : dataframe
         dataframe of all compounds in the training set
-        
+
     bb_train : dataframe
         dataframe of the training set building blocks at a specific position
-        
+
     bb_test : dataframe
         dataframe of the test set building blocks at a specific position
-        
+
     bb_pos : string
         string to specify which building block position; can be either "bb1", "bb2" or "bb3"
-    
+
     Output
     ------
     bb_train_updated, bb_test_updated : dataframe
@@ -125,19 +125,19 @@ def update_bbs(train, bb_train, bb_test, bb_pos):
 
 def train_test_split_by_compound(df, frac, seed=0):
     '''
-    Splits data into randomized train and test sets. 
-    
+    Splits data into randomized train and test sets.
+
     Input
     -----
     df : dataframe
         dataframe containing SMILES of full compounds
-        
+
     frac : float
         fraction of compounds to keep in the training set
-        
+
     seed : int
         value of the random seed
-    
+
     Output
     ------
     train, test : dataframe
@@ -149,55 +149,55 @@ def train_test_split_by_compound(df, frac, seed=0):
     test = test.drop(columns=['_merge']).reset_index()
     return train, test
 
-def calc_pactive(data, bb_train, bb_pos):
+def calc_pbind(data, bb_train, bb_pos):
     '''
-    Calculate P(active) value for each building block.
-    
+    Calculate P(bind) value for each building block.
+
     Input
     -----
     data : dataframe
         contains SMILES of each composite structure; SMILES of the constituent building blocks; experimental read count
-    
+
     bb_train : dataframe
         building blocks in the generated training set
-        
+
     bb_pos : str
         string to specify which building block position; can be either "bb1", "bb2" or "bb3"
-    
+
     Output
     ------
     merged : dataframe
-        dataframe containing the SMILES of each building block at the specified position and its P(active) value
+        dataframe containing the SMILES of each building block at the specified position and its P(bind) value
     '''
-    # Label compounds as 'active' or 'inactive' based on experimental read count values
-    data['active'] = [0 if x == 0 else 1 for x in data['read_count']]
-    
-    # Calculate P(active) for each building block at each position    
-    val = data.groupby([bb_pos], as_index=False)['active'].mean()
+    # Label compounds as 'binder' or 'non-binder' based on experimental read count values
+    data['bind'] = [0 if x == 0 else 1 for x in data['read_count']]
 
-    # Merge dataframe to the list of building blocks used to calculate the similarity matrix to maintain consistent indexing    
-    merged = pd.merge(bb_train, val, on=bb_pos).rename(columns={'active': 'P(active)'})
+    # Calculate P(bind) for each building block at each position
+    val = data.groupby([bb_pos], as_index=False)['bind'].mean()
+
+    # Merge dataframe to the list of building blocks used to calculate the similarity matrix to maintain consistent indexing
+    merged = pd.merge(bb_train, val, on=bb_pos).rename(columns={'bind': 'P(bind)'})
     return merged
 
 def match(bb_df, ref_list, bb_pos):
     '''
     Matches indices of building blocks in training and test set to a reference list.
-    
+
     Input
     -----
     bb_df : dataframe
         dataframe of randomly selected building blocks
-    
+
     ref_list : dataframe
         dataframe of building blocks ordered in the same way as what was used to calculate the similarity matrix
-        
+
      bb_pos : string
          string to specify which building block position; can be either "bb1", "bb2" or "bb3"
-    
+
     Output
     ------
     bb_ind : array
-        indices of how the randomly selected building blocks are ordered in the reference list; used to index into the generated similarity matrix 
+        indices of how the randomly selected building blocks are ordered in the reference list; used to index into the generated similarity matrix
     '''
     itd = pd.merge(bb_df, ref_list, left_on=bb_pos, right_on='SMILES', how='left')
     bb_ind = np.array(itd['index'])
@@ -233,7 +233,7 @@ def ecfp6_tanimoto_matrix(row_fps, column_fps):
     -----
     row_fps : list
         list of molecular fingerprints corresponding to the rows of the output matrix
-        
+
     column_fps : list
         list of molecular fingerprints corresponding to the columns of the output matrix
 
@@ -251,12 +251,12 @@ def ecfp6_tanimoto_matrix(row_fps, column_fps):
 def calc_dist_mat(row_SMILES, col_SMILES):
     '''
     Calculates a distance matrix from 2D Tanimoto scores for a set of input compounds.
-    
+
     Input
     -----
     row_SMILES, col_SMILES : list
         list of SMILES corresponding to the molecules in the row and columns of the distance matrix
-    
+
     Output
     ------
     distance_matrix : array
@@ -270,13 +270,13 @@ def calc_dist_mat(row_SMILES, col_SMILES):
 
 def dist_mat(sim_mat):
     '''
-    Converts pairwise similarity matrix into pairwise distance matrix. 
-    
+    Converts pairwise similarity matrix into pairwise distance matrix.
+
     Input
     -----
     sim_mat : array
         array of pairwise similarity values for all the building blocks in a position
-    
+
     Output
     ------
     dist_mat : array
@@ -289,20 +289,20 @@ def dist_mat(sim_mat):
 def UMAP_dist(dist_mat, seed):
     '''
     Creates a UMAP object to generate 2D coordinates from a pairwise distance matrix.
-    
+
     Input
     -----
     dist_mat : array
         array of pairwise distances for all the building blocks in a position
-    
+
     seed : integer
         value of the random seed
-    
+
     Output
     ------
     V.embedding_ : array
         2D coordinates for each building block in the distance matrix
-        
+
     V: UMAP object
         UMAP object that projects building blocks onto a 2D coordinate space
     '''
@@ -316,81 +316,81 @@ def assign_coords(bb_df, umap_dist):
     return bb_df
 
 def normalize_range(OldMin, OldMax, NewMin, NewMax, OldValue):
-    OldRange = (OldMax - OldMin)  
-    NewRange = (NewMax - NewMin)  
+    OldRange = (OldMax - OldMin)
+    NewRange = (NewMax - NewMin)
     NewValue = (((OldValue - OldMin) * NewRange) / OldRange) + NewMin
     return NewValue
 
-def plot_umap(bb1_pactive, bb2_pactive, bb3_pactive, trans_bb1, trans_bb2, trans_bb3):
+def plot_umap(bb1_pbind, bb2_pbind, bb3_pbind, trans_bb1, trans_bb2, trans_bb3):
     '''
     Returns 2D UMAP plot of the building blocks at each position and a density plot of the distance between building blocks in the projected space.
-    
+
     Input
     -----
-    bb1_pactive, bb2_pactive, bb3_pactive : dataframe
-        dataframe containing SMILES of each building block, its P(active) value and the corresponding P(active) bin
-        
+    bb1_pbind, bb2_pbind, bb3_pbind : dataframe
+        dataframe containing SMILES of each building block, its P(bind) value and the corresponding P(bind) bin
+
     trans_bb1, trans_bb2, trans_bb3 : UMAP object
         UMAP object containing the 2D coordinate projections for each building block position
-    
+
     Output
     ------
-    bb1_pactive, bb2_pactive, bb3_pactive : dataframe
+    bb1_pbind, bb2_pbind, bb3_pbind : dataframe
         updates each dataframe with the 2D UMAP coordinates of the corresponding building blocks in that position
     '''
-    bb1_size = [normalize_range(0, np.max(bb1_pactive['P(active)']), 1, 50, x) for x in bb1_pactive['P(active)']]
-    bb2_size = [normalize_range(0, np.max(bb2_pactive['P(active)']), 1, 50, x) for x in bb2_pactive['P(active)']]
-    bb3_size = [normalize_range(0, np.max(bb3_pactive['P(active)']), 1, 50, x) for x in bb3_pactive['P(active)']]
+    bb1_size = [normalize_range(0, np.max(bb1_pbind['P(bind)']), 1, 50, x) for x in bb1_pbind['P(bind)']]
+    bb2_size = [normalize_range(0, np.max(bb2_pbind['P(bind)']), 1, 50, x) for x in bb2_pbind['P(bind)']]
+    bb3_size = [normalize_range(0, np.max(bb3_pbind['P(bind)']), 1, 50, x) for x in bb3_pbind['P(bind)']]
 
-    bb1_alpha = [normalize_range(0, np.max(bb1_pactive['P(active)']), 0.1, 1, x) for x in bb1_pactive['P(active)']]
-    bb2_alpha = [normalize_range(0, np.max(bb2_pactive['P(active)']), 0.3, 1, x) for x in bb2_pactive['P(active)']]
-    bb3_alpha = [normalize_range(0, np.max(bb3_pactive['P(active)']), 0.1, 1, x) for x in bb3_pactive['P(active)']]
+    bb1_alpha = [normalize_range(0, np.max(bb1_pbind['P(bind)']), 0.1, 1, x) for x in bb1_pbind['P(bind)']]
+    bb2_alpha = [normalize_range(0, np.max(bb2_pbind['P(bind)']), 0.3, 1, x) for x in bb2_pbind['P(bind)']]
+    bb3_alpha = [normalize_range(0, np.max(bb3_pbind['P(bind)']), 0.1, 1, x) for x in bb3_pbind['P(bind)']]
 
     bb1_colors = [[0.0, 0.0, 1, x] for x in bb1_alpha]
     bb2_colors = [[1.0, 0.549, 0, x] for x in bb2_alpha]
     bb3_colors = [[0.0, 0.50196, 0, x] for x in bb3_alpha]
 
-    fig, axs = plt.subplots(2, 3, dpi=150, figsize=(20,10), 
+    fig, axs = plt.subplots(2, 3, dpi=150, figsize=(20,10),
                             gridspec_kw={'height_ratios': [3, 1]})
     plt.subplots_adjust(wspace=0.25, hspace=0.35)
-    
-    bb1_pactive[['X','Y']] = trans_bb1.embedding_
-    bb2_pactive[['X','Y']] = trans_bb2.embedding_
-    bb3_pactive[['X','Y']] = trans_bb3.embedding_
 
-    axs[0][0].scatter(bb1_pactive['X'], bb1_pactive['Y'], s=bb1_size, color=bb1_colors)
+    bb1_pbind[['X','Y']] = trans_bb1.embedding_
+    bb2_pbind[['X','Y']] = trans_bb2.embedding_
+    bb3_pbind[['X','Y']] = trans_bb3.embedding_
+
+    axs[0][0].scatter(bb1_pbind['X'], bb1_pbind['Y'], s=bb1_size, color=bb1_colors)
     axs[0][0].set_xlabel('UMAP_1', fontsize=14, labelpad=10)
     axs[0][0].set_ylabel('UMAP_2', fontsize=14, labelpad=10)
     axs[0][0].tick_params(axis='both', labelsize=12)
 
-    axs[0][1].scatter(bb2_pactive['X'], bb2_pactive['Y'], s=bb2_size, color=bb2_colors)
+    axs[0][1].scatter(bb2_pbind['X'], bb2_pbind['Y'], s=bb2_size, color=bb2_colors)
     axs[0][1].set_xlabel('UMAP_1', fontsize=14, labelpad=10)
     axs[0][1].set_ylabel('UMAP_2', fontsize=14, labelpad=10)
     axs[0][1].tick_params(axis='both', labelsize=12)
 
-    axs[0][2].scatter(bb3_pactive['X'], bb3_pactive['Y'], s=bb3_size, color=bb3_colors)
+    axs[0][2].scatter(bb3_pbind['X'], bb3_pbind['Y'], s=bb3_size, color=bb3_colors)
     axs[0][2].set_xlabel('UMAP_1', fontsize=14, labelpad=10)
     axs[0][2].set_ylabel('UMAP_2', fontsize=14, labelpad=10)
     axs[0][2].tick_params(axis='both', labelsize=12)
-    
+
     bb1_dist_mat = distance_matrix(trans_bb1.embedding_, trans_bb1.embedding_)
     bb2_dist_mat = distance_matrix(trans_bb2.embedding_, trans_bb2.embedding_)
     bb3_dist_mat = distance_matrix(trans_bb3.embedding_, trans_bb3.embedding_)
-    
-    top_ind = bb1_pactive.sort_values(by='P(active)', ascending=False).head(10).index
-    rand_ind = bb1_pactive.sample(n=10, random_state=42).index
+
+    top_ind = bb1_pbind.sort_values(by='P(bind)', ascending=False).head(10).index
+    rand_ind = bb1_pbind.sample(n=10, random_state=42).index
     bb1_top = bb1_dist_mat[top_ind, :][:, top_ind]
     bb1_rand = bb1_dist_mat[rand_ind, :][:, rand_ind]
     bb1_top_rand = bb1_dist_mat[top_ind, :][:, rand_ind]
-    
-    top_ind = bb2_pactive.sort_values(by='P(active)', ascending=False).head(10).index
-    rand_ind = bb2_pactive.sample(n=10, random_state=42).index
+
+    top_ind = bb2_pbind.sort_values(by='P(bind)', ascending=False).head(10).index
+    rand_ind = bb2_pbind.sample(n=10, random_state=42).index
     bb2_top = bb2_dist_mat[top_ind, :][:, top_ind]
     bb2_rand = bb2_dist_mat[rand_ind, :][:, rand_ind]
     bb2_top_rand = bb2_dist_mat[top_ind, :][:, rand_ind]
-    
-    top_ind = bb3_pactive.sort_values(by='P(active)', ascending=False).head(10).index
-    rand_ind = bb3_pactive.sample(n=10, random_state=42).index
+
+    top_ind = bb3_pbind.sort_values(by='P(bind)', ascending=False).head(10).index
+    rand_ind = bb3_pbind.sample(n=10, random_state=42).index
     bb3_top = bb3_dist_mat[top_ind, :][:, top_ind]
     bb3_rand = bb3_dist_mat[rand_ind, :][:, rand_ind]
     bb3_top_rand = bb3_dist_mat[top_ind, :][:, rand_ind]
@@ -419,21 +419,21 @@ def plot_umap(bb1_pactive, bb2_pactive, bb3_pactive, trans_bb1, trans_bb2, trans
 
     df = pd.DataFrame([[1, np.mean(bb1_top[np.triu_indices(10, k=1)]), np.mean(bb1_top_rand.ravel())],
               [2, np.mean(bb2_top[np.triu_indices(10, k=1)]), np.mean(bb2_top_rand.ravel())],
-              [3, np.mean(bb3_top[np.triu_indices(10, k=1)]), np.mean(bb3_top_rand.ravel())]], 
+              [3, np.mean(bb3_top[np.triu_indices(10, k=1)]), np.mean(bb3_top_rand.ravel())]],
               columns=['Position', 'top - top dist', 'top - rand dist'])
 
     display(df)
-    return bb1_pactive, bb2_pactive, bb3_pactive
+    return bb1_pbind, bb2_pbind, bb3_pbind
 
 def intracluster_dist(df):
     '''
     Calculates the average distance between provided points.
-    
+
     Input
     -----
     df : dataframe
         dataframe with building blocks and their X and Y coordinates
-    
+
     Output
     ------
     avg_icd : float
@@ -447,12 +447,12 @@ def intracluster_dist(df):
 def obj(params):
     '''
     Computes the value of objective function for each clustering initialization (see SI for more details)
-    
+
     Input
     -----
     params : dataframe
         dataframe with clustering information for each combination of hyperparameters
-    
+
     Output
     ------
     score : array
@@ -464,15 +464,15 @@ def obj(params):
 def optimal_hdbscan(bb_df, min_cluster=np.arange(3,61), min_samples=np.arange(1,21)):
     '''
     Performs a hyperparameter search for the HDBSCAN clustering algorithm.
-    
+
     Input
     -----
     bb_df : dataframe
-        dataframe containing the SMILES of building blocks, its P(active) value, corresponding P(active) bin and 2D coordinates 
+        dataframe containing the SMILES of building blocks, its P(bind) value, corresponding P(bind) bin and 2D coordinates
 
     min_cluster : array
         values to test for the hyperparameter controlling the minimum cluster size
-        
+
     min_samples : array
         values to test for the hyperparameter controlling how conservative the clustering is (larger is more conservative)
 
@@ -519,12 +519,12 @@ def cluster(bb_df, opt_params):
 def set_colors(cluster_labels):
     '''
     Sets colors to plot points based on their assigned HDBSCAN cluster.
-    
+
     Input
     -----
     cluster_labels : array
         array of cluster IDs
-    
+
     Output
     ------
     color : array
@@ -538,67 +538,67 @@ def set_colors(cluster_labels):
         color = plt.cm.rainbow(np.linspace(0, 1, len(set(cluster_labels))))
         return color
 
-def plot_hdbscan(bb_pactive, params, transform, bb_test=None):
+def plot_hdbscan(bb_pbind, params, transform, bb_test=None):
     '''
     Plots building blocks in projected UMAP space colored by their HDBSCAN cluster assignment.
-    
+
     Input
     -----
-    bb_pactive : dataframe
-        contains building block SMILES, P(active) value and 2D UMAP coordinates
-    
+    bb_pbind : dataframe
+        contains building block SMILES, P(bind) value and 2D UMAP coordinates
+
     params : tuple
         tuple of hyperparameters to initialize HDBSCAN
-    
+
     transform : UMAP object
         UMAP object that projects building blocks onto 2D coordinate space
-        
+
     bb_test : dataframe
         dataframe of test set building blocks (field can be left empty if N/A)
-    
+
     Output
     ------
-    bb_pactive : dataframe
+    bb_pbind : dataframe
         updates dataframe with HDBSCAN cluster assignment
     '''
     fig, axs = plt.subplots(figsize=(7,7))
     cluster = hdbscan.HDBSCAN(min_cluster_size=params[0], min_samples=params[1], metric='euclidean', gen_min_span_tree=True, allow_single_cluster=False, prediction_data=True).fit(transform.embedding_)
 
-    bb_pactive['Cluster'] = cluster.labels_
+    bb_pbind['Cluster'] = cluster.labels_
     cluster_colors = set_colors(cluster.labels_)
 
     axs.scatter(transform.embedding_[:, 0], transform.embedding_[:, 1], color=cluster_colors[cluster.labels_], s=10)
     axs.set_title(f'Number of Clusters: {len(np.unique(cluster.labels_))-1}\nNoise points: {np.unique(cluster.labels_, return_counts=True)[1][0]}')
     if isinstance(bb_test, type(None)) == False:
         axs.scatter(bb_test['X'], bb_test['Y'], s=50, color=cluster_colors[bb_test['Cluster']], edgecolors='black')
-    return bb_pactive
+    return bb_pbind
 
 def predict_cluster(bb_umap, bb_clusterer, dist_mat, train_ind, test_ind):
     '''
     Predicts which cluster new building blocks belong to based on similarity.
-    
+
     Input
     -----
     bb_umap : UMAP object
         UMAP object that projects building blocks onto 2D coordinate space
-    
+
     bb_clusterer : HDBSCAN object
         HDBSCAN object that can assign new points to existing clusters
-        
+
     dist_mat : array
         distance matrix between existing and new compounds
-        
+
     train_ind, test_ind : array
-        indices for compounds in the train and test set, respectively; indices are with respect to the order of building blocks in the reference list used to generate the similarity matrix         
-    
+        indices for compounds in the train and test set, respectively; indices are with respect to the order of building blocks in the reference list used to generate the similarity matrix
+
     Output
     ------
     test_coords : array
         array with the 2D UMAP coordinates for each building block in the test set
-        
+
     bb_cluster : array
         array with the cluster ID for each building block in the test set
-        
+
     bb1_prob : array
         array with the confidence of cluster assignment for each building block in the test set
     '''
@@ -608,153 +608,153 @@ def predict_cluster(bb_umap, bb_clusterer, dist_mat, train_ind, test_ind):
 
 def get_nn(test_bb, bb_pos, all_bb, bb_train, bb_train_ind, dist_mat):
     '''
-    Estimates the P(active) of a building block in the test set with its nearest neighbor.
-    
+    Estimates the P(bind) of a building block in the test set with its nearest neighbor.
+
     Input
     -----
     test_bb : Series
         contains SMILES, 2D UMAP coordinates and cluster assignment for a building block in the test set
-        
+
     bb_pos : string
         string to specify which building block position; can be either "bb1", "bb2" or "bb3"
-    
+
     all_bb : dataframe
         dataframe of building blocks for a specific position in the order used to calculate the similarity matrix
-    
+
     bb_train : dataframe
         dataframe of all building blocks in the training set for a given position
-        
+
     bb_train_ind : array
         array of indices of the training set building blocks; order is with respect to the reference dataframe used to calculate the similarity matrix
-        
+
     dist_mat : array
         array of pairwise distances between building blocks in the train and test set
-    
+
     Output
     ------
-    pred_pactive : float
-        predicted P(active) value for the test set building block
+    pred_pbind : float
+        predicted P(bind) value for the test set building block
     '''
     bb_SMILES = test_bb[bb_pos]
     bb_id = np.where(all_bb == bb_SMILES)[0]
     ind = np.ix_(bb_id, bb_train_ind)
     nn_id = np.argmin(dist_mat[ind])
-    pred_pactive = bb_train.iloc[nn_id]['P(active)']
-    return pred_pactive
+    pred_pbind = bb_train.iloc[nn_id]['P(bind)']
+    return pred_pbind
 
 def get_cluster_nn(test_bb, bb_pos, all_bb, bb_train, dist_mat):
     '''
-    Estimates the P(active) of a building block in the test set with the nearest neighbor in its assigned cluster.
-    
+    Estimates the P(bind) of a building block in the test set with the nearest neighbor in its assigned cluster.
+
     Input
     -----
     test_bb : Series
         contains SMILES, 2D UMAP coordinates and cluster assignment for a building block in the test set
-        
+
     bb_pos : string
         string to specify which building block position; can be either "bb1", "bb2" or "bb3"
-    
+
     all_bb : dataframe
         dataframe of building blocks for a specific position in the order used to calculate the similarity matrix
-    
+
     bb_train : dataframe
         dataframe of all building blocks in the training set for a given position
-        
+
     dist_mat : array
         array of pairwise distances between building blocks in the train and test set
-    
+
     Output
     ------
-    pred_pactive : float
-        predicted P(active) value for the test set building block
+    pred_pbind : float
+        predicted P(bind) value for the test set building block
     '''
     bb_SMILES = test_bb[bb_pos]
     bb_id = np.where(all_bb['SMILES'] == bb_SMILES)[0]
     cluster_id = test_bb['Cluster']
     cluster_bbs = bb_train.loc[bb_train['Cluster'] == cluster_id]
     if len(cluster_bbs) == 0:
-        pred_pactive = 0.0
-        return pred_pactive
+        pred_pbind = 0.0
+        return pred_pbind
     else:
         cluster_bb_ids = match(cluster_bbs, all_bb, bb_pos=bb_pos)
         ind = np.ix_(bb_id, cluster_bb_ids)
         nn_ind = np.argmin(dist_mat[ind])
         cluster_nn_ind = cluster_bb_ids[nn_ind]
         nn_smi = all_bb.iloc[cluster_nn_ind]['SMILES']
-        pred_pactive = bb_train.loc[bb_train[bb_pos] == nn_smi, 'P(active)'].values[0]
-        return pred_pactive
+        pred_pbind = bb_train.loc[bb_train[bb_pos] == nn_smi, 'P(bind)'].values[0]
+        return pred_pbind
 
 def get_cluster_med(test_bb, bb_train):
     '''
-    Estimates the P(active) of a building block in the test set with the median P(active) value of the building blocks in its assigned cluster.
-    
+    Estimates the P(bind) of a building block in the test set with the median P(bind) value of the building blocks in its assigned cluster.
+
     Input
     -----
     test_bb : Series
         contains SMILES, 2D UMAP coordinates and cluster assignment for a building block in the test set
-    
+
     bb_train : dataframe
         dataframe of all building blocks in the training set for a given position
-    
+
     Output
     ------
-    pred_pactive : float
-        predicted P(active) value for the test set building block
+    pred_pbind : float
+        predicted P(bind) value for the test set building block
     '''
     cluster_id = test_bb['Cluster']
     clust = bb_train.loc[bb_train['Cluster'] == cluster_id]
     if len(clust) == 0:
-        pred_pactive = 0.0
-        return pred_pactive
+        pred_pbind = 0.0
+        return pred_pbind
     else:
-        pred_pactive = np.median(clust['P(active)'])
-        return pred_pactive
+        pred_pbind = np.median(clust['P(bind)'])
+        return pred_pbind
 
 def get_cluster_mean(test_bb, bb_train):
     '''
-    Estimates the P(active) of a building block in the test set with the mean P(active) value of the building blocks in its assigned cluster.
-    
+    Estimates the P(bind) of a building block in the test set with the mean P(bind) value of the building blocks in its assigned cluster.
+
     Input
     -----
     test_bb : Series
         contains SMILES, 2D UMAP coordinates and cluster assignment for a building block in the test set
-    
+
     bb_train : dataframe
         dataframe of all building blocks in the training set for a given position
-    
+
     Output
     ------
-    pred_pactive : float
-        predicted P(active) value for the test set building block
+    pred_pbind : float
+        predicted P(bind) value for the test set building block
     '''
     cluster_id = test_bb['Cluster']
     clust = bb_train.loc[bb_train['Cluster'] == cluster_id]
     if len(clust) == 0:
-        pred_pactive = 0.0
-        return pred_pactive
+        pred_pbind = 0.0
+        return pred_pbind
     else:
-        pred_pactive = np.mean(clust['P(active)'])
-        return pred_pactive
+        pred_pbind = np.mean(clust['P(bind)'])
+        return pred_pbind
 
 def get_cluster_random(bb_train, bb_test, seed):
     '''
-    Estimates the P(active) of a building block in the test set with the P(active) value of a randomly selected building block in its assigned cluster.
-    
+    Estimates the P(bind) of a building block in the test set with the P(bind) value of a randomly selected building block in its assigned cluster.
+
     Input
     -----
     bb_train : dataframe
         dataframe of all building blocks in the training set for a given position
-        
+
     bb_test : dataframe
         dataframe of all building blocks in the test set for a given position
-        
+
     seed : int
         value of the random seed
-    
+
     Output
     ------
     pred : array
-        predicted P(active) value for each test set building block
+        predicted P(bind) value for each test set building block
     '''
     cluster_id, cluster_freq = np.unique(bb_test['Cluster'], return_counts=True)
     pred = np.ones(len(bb_test))*-1
@@ -764,44 +764,44 @@ def get_cluster_random(bb_train, bb_test, seed):
         if len(compounds) == 0:
             assign_id = np.zeros(count)
         else:
-            assign_id = compounds.sample(n=count, replace=True)['P(active)'].values
+            assign_id = compounds.sample(n=count, replace=True)['P(bind)'].values
         pred[ind] = assign_id
     return pred
 
 def get_test_pred(bb_test, bb_pos, all_bb, bb_train, bb_train_ind, dist_mat, seed, how='cluster_nn'):
     '''
-    Estimates the P(active) of a building block in the test set based on the method specified.
-    
+    Estimates the P(bind) of a building block in the test set based on the method specified.
+
     Input
     -----
     bb_test : dataframe
         dataframe of all building blocks in the test set for a given position
-        
+
     bb_pos : string
         string to specify which building block position; can be either "bb1", "bb2" or "bb3"
-    
+
     all_bb : dataframe
         dataframe of building blocks for a specific position in the order used to calculate the similarity matrix
-    
+
     bb_train : dataframe
         dataframe of all building blocks in the training set for a given position
-        
+
     bb_train_ind : array
         array of indices of the training set building blocks; order is with respect to the reference dataframe used to calculate the similarity matrix
-        
+
     dist_mat : array
         array of pairwise distances between building blocks in the train and test set
-     
+
     seed : int
         value of the random seed
-        
+
     how : string
-        which method to use to estimate the P(active) of an unknown building block; choices are "cluster_nn", "NN", "med", "mean", "crand" and "random"
-    
+        which method to use to estimate the P(bind) of an unknown building block; choices are "cluster_nn", "NN", "med", "mean", "crand" and "random"
+
     Output
     ------
     bb_pred : list
-        predicted P(active) value for each test set building block
+        predicted P(bind) value for each test set building block
     '''
     np.random.seed(seed)
     if how == 'cluster_nn':
@@ -815,61 +815,61 @@ def get_test_pred(bb_test, bb_pos, all_bb, bb_train, bb_train_ind, dist_mat, see
     elif how == 'crand':
         bb_pred = get_cluster_random(bb_train, bb_test, seed)
     elif how == 'random':
-        bb_pred = np.random.choice(bb_train['P(active)'], size=len(bb_test))
+        bb_pred = np.random.choice(bb_train['P(bind)'], size=len(bb_test))
     return bb_pred
 
 def format_data_for_tree(data, bb1_data, bb2_data, bb3_data):
     '''
     Formats data to be input into a decision tree model.
-    
+
     Input
     -----
     data : dataframe
-        dataframe containing all compounds in the train or test set 
-        
+        dataframe containing all compounds in the train or test set
+
     bb1_data, bb2_data, bb3_data : dataframe
-        dataframe of the SMILES and P(active) value of building blocks in both the train and test sets
-    
+        dataframe of the SMILES and P(bind) value of building blocks in both the train and test sets
+
     Output
     ------
     merged : dataframe
-        SMILES of each compound along with the P(active) and cluster assignment of each of its constituent building blocks
+        SMILES of each compound along with the P(bind) and cluster assignment of each of its constituent building blocks
     '''
-    merged = data.merge(bb1_data[['bb1', 'P(active)', 'Cluster']], on='bb1').rename(columns={'P(active)': 'P(active)_1', 'Cluster': 'bb1_Cluster'})\
-    .merge(bb2_data[['bb2', 'P(active)', 'Cluster']], on='bb2').rename(columns={'P(active)': 'P(active)_2', 'Cluster': 'bb2_Cluster'})\
-    .merge(bb3_data[['bb3', 'P(active)', 'Cluster']], on='bb3').rename(columns={'P(active)': 'P(active)_3', 'Cluster': 'bb3_Cluster'})
-    merged['active'] = [0 if x == 0 else 1 for x in merged['read_count']]
+    merged = data.merge(bb1_data[['bb1', 'P(bind)', 'Cluster']], on='bb1').rename(columns={'P(bind)': 'P(bind)_1', 'Cluster': 'bb1_Cluster'})\
+    .merge(bb2_data[['bb2', 'P(bind)', 'Cluster']], on='bb2').rename(columns={'P(bind)': 'P(bind)_2', 'Cluster': 'bb2_Cluster'})\
+    .merge(bb3_data[['bb3', 'P(bind)', 'Cluster']], on='bb3').rename(columns={'P(bind)': 'P(bind)_3', 'Cluster': 'bb3_Cluster'})
+    merged['bind'] = [0 if x == 0 else 1 for x in merged['read_count']]
     return merged
 
 def create_tree(train, seed, depth=5):
     '''
     Creates decision tree model trained on input data.
-    
+
     Input
     -----
     train : dataframe
-        dataframe of training set compounds containing the P(active) and cluster assignment of each of its constituent building blocks and a binary label for the compound activity
-        
+        dataframe of training set compounds containing the P(bind) and cluster assignment of each of its constituent building blocks and a binary label for the compound binding
+
     seed : integer
         value of the random seed
-        
+
     depth : integer
         hyperparameter controlling the depth of the decision tree
-    
+
     Output
     ------
     decision_tree : DecisionTreeClassifier
         model object that can be applied to make predictions on the test set
     '''
-    train_features = train[['bb1_Cluster', 'bb2_Cluster', 'bb3_Cluster', 'P(active)_1', 'P(active)_2', 'P(active)_3']]
-    train_targets = train['active']
+    train_features = train[['bb1_Cluster', 'bb2_Cluster', 'bb3_Cluster', 'P(bind)_1', 'P(bind)_2', 'P(bind)_3']]
+    train_targets = train['bind']
     decision_tree = tree.DecisionTreeClassifier(random_state=seed, max_depth=depth)
     decision_tree = decision_tree.fit(train_features, train_targets)
     return decision_tree
 
 def cv_trees(X, y, k_fold, tree_depths, scoring):
     '''
-    Performs 5-fold cross validation to determine the optimal decision tree depth. 
+    Performs 5-fold cross validation to determine the optimal decision tree depth.
     Code adapted from: https://towardsdatascience.com/how-to-find-decision-tree-depth-via-cross-validation-2bf143f0f3d6
 
     Input
@@ -879,21 +879,21 @@ def cv_trees(X, y, k_fold, tree_depths, scoring):
 
     y : array
         array with the binary label for each point
-        
+
     k_fold : int
         value specifying the number of cross-validation folds to use
-        
+
     tree_depths : array
         range of decision tree depths to evaluate
-        
+
     scoring : string
         metric to evaluate cross validation performance on; options are "precision" and "recall"
-    
+
     Output
     ------
     train_results : array
         value of the metric on the training data for each tree depth
-        
+
     cv_results : array
         mean value and standard deviation of the metric across k_folds for each tree depth
     '''
@@ -905,42 +905,42 @@ def cv_trees(X, y, k_fold, tree_depths, scoring):
         cv_score = cross_val_score(dt, X, y, cv=k_fold, scoring=scoring)
         cv_results[index, 0] = np.mean(cv_score)
         cv_results[index, 1] = np.std(cv_score)
-        
+
     return train_results, cv_results
 
-def predict_activity(data, tree):
+def predict_binding(data, tree):
     '''
-    Returns the predicted probability from the decision tree of a compound being active.
-    
+    Returns the predicted probability from the decision tree of a compound being a binder.
+
     Input
     -----
     data : dataframe
-        dataframe of the compounds in the test set and the P(active) and cluster assignment of their constituent building blocks
+        dataframe of the compounds in the test set and the P(bind) and cluster assignment of their constituent building blocks
 
     tree : DecisionTreeClassifier
         model object to apply to make predictions on the test set
-    
+
     Output
     ------
     probs : array
-        array containing the predicted probability each test set compound is active
-    '''    
-    features = data[['bb1_Cluster', 'bb2_Cluster', 'bb3_Cluster', 'P(active)_1', 'P(active)_2', 'P(active)_3']]
+        array containing the predicted probability each test set compound is a binder
+    '''
+    features = data[['bb1_Cluster', 'bb2_Cluster', 'bb3_Cluster', 'P(bind)_1', 'P(bind)_2', 'P(bind)_3']]
     probs = tree.predict_proba(features)[:,1]
     return probs
 
 def calculate_auc(targets, probs):
     '''
     Calculates the area under the curve (AUC) of the precision-recall curve for a given prediction method.
-    
+
     Input
     -----
     targets : array
-        array of the true activity labels for the test set compounds
-        
+        array of the true binding labels for the test set compounds
+
     probs : array
-        array of the predicted probability of activity for each test set compound
-    
+        array of the predicted probability of binding for each test set compound
+
     Output
     ------
     val : float
@@ -949,6 +949,32 @@ def calculate_auc(targets, probs):
     precision, recall, threshold = precision_recall_curve(targets, probs)
     val = auc(recall, precision)
     return val
+
+def get_test_binders(N, cluster_ids, seed):
+    '''
+    Randomly samples compounds from a specified combination of cluster ids.
+
+    Input
+    -----
+    N : int
+        number of compounds to sample (this is limited by the number of compounds with a specific cluster combination)
+
+    cluster_ids : tuple
+        combination of cluster ids specified as (1,2,3)
+
+    seed : int
+        value of the random seed
+
+    Output
+    ------
+    img : Image object
+        image of the randomly selected compounds
+    '''
+    structures = test_comb.loc[test_comb['code'] == cluster_ids].sample(n=N, random_state=seed)['structure']
+    mols = [Chem.MolFromSmiles(smi) for smi in structures]
+    display(test.loc[test['structure'].isin(structures)])
+    img = Draw.MolsToGridImage(mols, molsPerRow=3)
+    return img
 
 def parse_args():
     my_parser = argparse.ArgumentParser(description="calculates AUC of model")
@@ -964,7 +990,7 @@ def main():
     seed_val = args.seed
     train_frac = args.frac
     df = pd.read_csv('../data_preparation/output/total_compounds.csv')
-    
+
     # Identify all unique building blocks at each position
     all_bb1 = unique_bb(df, bb_pos='bb1')
     all_bb2 = unique_bb(df, bb_pos='bb2')
@@ -981,10 +1007,10 @@ def main():
     bb2_train, bb2_test = update_bbs(train, bb2_train, bb2_test, 'bb2')
     bb3_train, bb3_test = update_bbs(train, bb3_train, bb3_test, 'bb3')
 
-    # Calculate P(active) of training set building blocks
-    bb1_train = calc_pactive(train, bb1_train, bb_pos='bb1')
-    bb2_train = calc_pactive(train, bb2_train, bb_pos='bb2')
-    bb3_train = calc_pactive(train, bb3_train, bb_pos='bb3')
+    # Calculate P(bind) of training set building blocks
+    bb1_train = calc_pbind(train, bb1_train, bb_pos='bb1')
+    bb2_train = calc_pbind(train, bb2_train, bb_pos='bb2')
+    bb3_train = calc_pbind(train, bb3_train, bb_pos='bb3')
 
     # Load in reference list of building blocks
     bb1_ref = pd.read_csv('files/remove_stereo/bb1_list.csv').reset_index()
@@ -1005,12 +1031,12 @@ def main():
     bb1_sim = np.load(f'files/remove_stereo/bb1_list.npy')
     bb2_sim = np.load(f'files/remove_stereo/bb2_list.npy')
     bb3_sim = np.load(f'files/remove_stereo/bb3_list.npy')
-    
+
     # Convert similarities into distances
     bb1_dist = dist_mat(bb1_sim)
     bb2_dist = dist_mat(bb2_sim)
     bb3_dist = dist_mat(bb3_sim)
-    
+
     # Generate 2D UMAP coordinates for the building blocks at each position
     bb1_coords, bb1_umap = UMAP_dist(bb1_dist[np.ix_(bb1_train_ind, bb1_train_ind)], seed=seed_val)
     bb2_coords, bb2_umap = UMAP_dist(bb2_dist[np.ix_(bb2_train_ind, bb2_train_ind)], seed=seed_val)
@@ -1047,23 +1073,23 @@ def main():
     bb1_test['Cluster'] = bb1_cluster
     bb2_test['Cluster'] = bb2_cluster
     bb3_test['Cluster'] = bb3_cluster
-    
+
     # Create decision tree and train
     train_input = format_data_for_tree(train, bb1_train, bb2_train, bb3_train)
     tree_classifier = create_tree(train_input, seed=seed_val, depth=5)
 
-    # Test various methods to predict P(active) of test set building blocks
+    # Test various methods to predict P(bind) of test set building blocks
     method = ['cluster_nn', 'NN', 'med', 'mean', 'crand', 'random']
     ans = pd.DataFrame(columns=method)
     values = []
     for met in method:
-        bb1_test['P(active)'] = get_test_pred(bb1_test, 'bb1', all_bb1, bb1_train, bb1_dist, how=met, seed=seed_val)
-        bb2_test['P(active)'] = get_test_pred(bb2_test, 'bb2', all_bb2, bb2_train, bb2_dist, how=met, seed=seed_val)
-        bb3_test['P(active)'] = get_test_pred(bb3_test, 'bb3', all_bb3, bb3_train, bb3_dist, how=met, seed=seed_val)
-        
-        bb1_mod = bb1_test[['bb1', f'{met}', 'X', 'Y', 'Cluster']].rename(columns={f'{met}': 'P(active)'})
-        bb2_mod = bb2_test[['bb2', f'{met}', 'X', 'Y', 'Cluster']].rename(columns={f'{met}': 'P(active)'})
-        bb3_mod = bb3_test[['bb3', f'{met}', 'X', 'Y', 'Cluster']].rename(columns={f'{met}': 'P(active)'})
+        bb1_test['P(bind)'] = get_test_pred(bb1_test, 'bb1', all_bb1, bb1_train, bb1_dist, how=met, seed=seed_val)
+        bb2_test['P(bind)'] = get_test_pred(bb2_test, 'bb2', all_bb2, bb2_train, bb2_dist, how=met, seed=seed_val)
+        bb3_test['P(bind)'] = get_test_pred(bb3_test, 'bb3', all_bb3, bb3_train, bb3_dist, how=met, seed=seed_val)
+
+        bb1_mod = bb1_test[['bb1', f'{met}', 'X', 'Y', 'Cluster']].rename(columns={f'{met}': 'P(bind)'})
+        bb2_mod = bb2_test[['bb2', f'{met}', 'X', 'Y', 'Cluster']].rename(columns={f'{met}': 'P(bind)'})
+        bb3_mod = bb3_test[['bb3', f'{met}', 'X', 'Y', 'Cluster']].rename(columns={f'{met}': 'P(bind)'})
 
         bb1_comb = pd.concat([bb1_train, bb1_test])
         bb2_comb = pd.concat([bb2_train, bb2_test])
@@ -1072,8 +1098,8 @@ def main():
         # Standardize to evaluate the same size test set for all runs
         N=500000
         test_input = format_data_for_tree(test.sample(n=N, random_state=seed_val), bb1_comb, bb2_comb, bb3_comb)
-        test_prob = predict_activity(test_input, tree_classifier)
-        val = calculate_auc(test_input['active'], test_prob)
+        test_prob = predict_binding(test_input, tree_classifier)
+        val = calculate_auc(test_input['bind'], test_prob)
         values.append(val)
 
     ans.loc[len(ans)] = values
