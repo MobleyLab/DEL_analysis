@@ -3,7 +3,7 @@
 ## What's here:
 ### script
 - `analysis.ipynb`: notebook outlining analysis from paper with additional visualizations
-- `tools.py`: set of helper functions to perform analysis
+- `analysis_tools.py`: set of helper functions to perform analysis
 - `gen_figures.ipynb`: notebook with more involved code to produce all the figures from the manuscript
 
 ## Procedure
