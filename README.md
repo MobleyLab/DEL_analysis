@@ -1,5 +1,7 @@
 # DEL_analysis
-This repository provides relevant code and files to reproduce the analysis from our paper. 
+This repository provides relevant code and files to reproduce the analysis from our paper: https://chemrxiv.org/engage/chemrxiv/article-details/6438943f08c86922ffeffe57 
+
+
 [![DOI](https://zenodo.org/badge/594168758.svg)](https://zenodo.org/badge/latestdoi/594168758)
 
 ### Organization
@@ -8,7 +10,7 @@ Associated code and files for different procedures are separated into distinct d
 
 #### Manifest:
 - `data_preparation`: clean DEL data and prepare for single building block level analysis
-- `similarity_calculation`: calculate 3D Tanimoto similarity of building blocks
+- `similarity_calculation`: calculate 2D/3D Tanimoto similarity of building blocks
 - `data_analysis`: analyze the data from an experimental DEL screen
 - `prediction`: predict the activity of new compounds using previous experimental information
 - `SI`: additional figures and analysis 
