@@ -2,8 +2,8 @@
 
 ## What's here:
 ### input
-- `del_hits.csv`: file with SMILES of experimentally determined hits and associated read counts
-- `del_inactives.csv`: file with SMILES of experimentally determined inactives
+- `del_binders.csv`: file with SMILES of experimentally determined binders and associated read counts
+- `del_nonbinders.csv`: file with SMILES of experimentally determined non-binders
 - `PG_SMILES.pkl`: contains the SMILES for the protecting groups present in the data
 - `deprot_SMIRKS.pkl`: contains SMIRKS patterns to deprotect building blocks 
 
