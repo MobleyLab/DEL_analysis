@@ -37,27 +37,27 @@ def find_boron(df):
 
     return remove_1 | remove_2 | remove_3
 
-def clean_hits(hits):
-    hits_drop_1 = find_null(hits)
-    hits_drop_2 = find_duplicates(hits)
-    hits_drop_3 = find_boron(hits)
-    hits_drop_4 = find_bad_bbs(hits)
-    hits_updated = update_df(hits, list(hits_drop_1 | hits_drop_2 | hits_drop_3 | hits_drop_4))
-    return hits_updated
+def clean_binders(binders):
+    binders_drop_1 = find_null(binders)
+    binders_drop_2 = find_duplicates(binders)
+    binders_drop_3 = find_boron(binders)
+    binders_drop_4 = find_bad_bbs(binders)
+    binders_updated = update_df(binders, list(binders_drop_1 | binders_drop_2 | binders_drop_3 | binders_drop_4))
+    return binders_updated
 
-def clean_inactives(inactives):
-    inactives_drop_1 = find_null(inactives)
-    inactives_drop_2 = find_duplicates(inactives)
-    inactives_drop_3 = find_boron(inactives)
-    inactives_drop_4 = find_bad_bbs(inactives)
-    inactives_drop_5 = find_nonzero_readcount(inactives)
-    inactives_updated = update_df(inactives, list(inactives_drop_1 | inactives_drop_2 | inactives_drop_3 | inactives_drop_4 | inactives_drop_5))
-    return inactives_updated
+def clean_nonbinders(nonbinders):
+    nonbinders_drop_1 = find_null(nonbinders)
+    nonbinders_drop_2 = find_duplicates(nonbinders)
+    nonbinders_drop_3 = find_boron(nonbinders)
+    nonbinders_drop_4 = find_bad_bbs(nonbinders)
+    nonbinders_drop_5 = find_nonzero_readcount(nonbinders)
+    nonbinders_updated = update_df(nonbinders, list(nonbinders_drop_1 | nonbinders_drop_2 | nonbinders_drop_3 | nonbinders_drop_4 | nonbinders_drop_5))
+    return nonbinders_updated
 
-def get_all_bbs(hits_updated, inactives_updated):
-    hit_bbs = set(hits_updated['bb1']) | set(hits_updated['bb2']) | set(hits_updated['bb3'])
-    inactive_bbs = set(inactives_updated['bb1']) | set(inactives_updated['bb2']) | set(inactives_updated['bb3'])
-    all_bbs = pd.DataFrame({'SMILES': list(hit_bbs | inactive_bbs)})
+def get_all_bbs(binders_updated, nonbinders_updated):
+    bind_bbs = set(binders_updated['bb1']) | set(binders_updated['bb2']) | set(binders_updated['bb3'])
+    nonbind_bbs = set(nonbinders_updated['bb1']) | set(nonbinders_updated['bb2']) | set(nonbinders_updated['bb3'])
+    all_bbs = pd.DataFrame({'SMILES': list(bind_bbs | nonbind_bbs)})
     return all_bbs
 
 def has_pg(compound_SMILES, pg):
@@ -162,8 +162,8 @@ def keep_ind(bb_pactive, repeat_bb_dict):
     bb_keep = list(itd.loc[itd['_merge'] == 'left_only'].index)
     return bb_keep
 
-def total_concat(hits_updated, inactives_updated, deprot_bbs):
-    total = pd.concat([hits_updated, inactives_updated]).drop(columns=['RANK']).reset_index(drop=True)
+def total_concat(binders_updated, nonbinders_updated, deprot_bbs):
+    total = pd.concat([binders_updated, nonbinders_updated]).drop(columns=['RANK']).reset_index(drop=True)
     total_deprot = pd.merge(total[['bb1', 'bb2', 'bb3', 'structure', 'read_count']], deprot_bbs[['SMILES', 'deprot_SMILES']], how='left', left_on='bb1', right_on='SMILES')\
         .drop(columns=['SMILES', 'bb1']).rename(columns={'deprot_SMILES': 'bb1'})\
         .merge(deprot_bbs[['SMILES', 'deprot_SMILES']], left_on='bb2', how='left', right_on='SMILES')\
@@ -174,19 +174,19 @@ def total_concat(hits_updated, inactives_updated, deprot_bbs):
 
 def main():
     # Load in dataframes from experimental runs
-    hits = pd.read_csv('../input/del_hits.csv')
-    inactives = pd.read_csv('../input/del_inactives.csv')
-    
+    binders = pd.read_csv('../input/del_binders.csv')
+    nonbinders = pd.read_csv('../input/del_nonbinders.csv')
+
     # Clean active and inactive compounds
-    cleaned_hits = clean_hits(hits)
-    cleaned_inactives = clean_inactives(inactives)
+    cleaned_binders = clean_binders(binders)
+    cleaned_nonbinders = clean_nonbinders(nonbinders)
 
     # Deprotect building blocks in data
-    all_bbs = get_all_bbs(cleaned_hits, cleaned_inactives)
+    all_bbs = get_all_bbs(cleaned_binders, cleaned_nonbinders)
     deprot_bbs = deprotect_bbs(all_bbs)
-    
+
     # Organize data into new dataframe
-    total_comp = total_concat(cleaned_hits, cleaned_inactives, deprot_bbs)
+    total_comp = total_concat(cleaned_binders, cleaned_nonbinders, deprot_bbs)
 
     # Make dataframe of building blocks at each position
     bb1_list = pd.DataFrame({'SMILES': np.unique(total_comp['bb1'])})
@@ -217,12 +217,12 @@ def main():
     bb1_new = bb1_list.iloc[bb1_keep_ind].reset_index(drop=True)
     bb2_new = bb2_list.iloc[bb2_keep_ind].reset_index(drop=True)
     bb3_new = bb3_list.iloc[bb3_keep_ind].reset_index(drop=True)
-    
+
     # Update total compounds
     total_compounds = total_comp.merge(bb1_new, left_on=['bb1'], right_on=['SMILES']).drop(columns=['SMILES']).rename(columns={'iso_SMILES': 'bb1_iso'})\
     .merge(bb2_new, left_on=['bb2'], right_on=['SMILES']).drop(columns=['SMILES']).rename(columns={'iso_SMILES': 'bb2_iso'})\
     .merge(bb3_new, left_on=['bb3'], right_on=['SMILES']).drop(columns=['SMILES']).rename(columns={'iso_SMILES': 'bb3_iso'})
-                      
+
     # Save files
     bb1_new.to_csv('../output/bb1_list.csv', index=False)
     bb2_new.to_csv('../output/bb2_list.csv', index=False)
