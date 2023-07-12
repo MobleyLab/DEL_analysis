@@ -12,25 +12,25 @@ def calc_3D_sim(ref, test):
     Inputs
     ------
     ref : str
-        filename of the .oeb file containing enumerated stereoisomers and generated conformers for the reference set 
+        filename of the .oeb file containing enumerated stereoisomers and generated conformers for the reference set
     test : str
-        filename of the .oeb file containing enumerated stereoisomers and generated conformers for the reference set 
+        filename of the .oeb file containing enumerated stereoisomers and generated conformers for the reference set
 
     Outputs
     -------
     refname.npy : array
         NumPy array of shape (ref, test) where each element is the highest 3D Tanimoto combo score between a compound
         in the ref set and compound in the test set
-    
+
     refname.csv : file
-        file containing the SMILES of the representative stereoisomer for each compound in the reference set; 
+        file containing the SMILES of the representative stereoisomer for each compound in the reference set;
         in the case where stereochemistry is specified for that compound, the SMILES and the enumerated_SMILES will be the same
-        
+
     testname.csv : file
-        file containing the SMILES of the representative stereoisomer for each compound in the test set; 
+        file containing the SMILES of the representative stereoisomer for each compound in the test set;
         in the case where stereochemistry is specified for that compound, the SMILES and the enumerated_SMILES will be the same
     '''
-    
+
     refname = ref[:-4]
     testname = test[:-4]
 
@@ -97,11 +97,11 @@ def calc_3D_sim(ref, test):
 
     ## Clean output matrix
     output_matrix, keep_ind_ref, keep_ind_test = clean_3D_sim_matrix.modify_3D_sim_mat(output_matrix, refname+'.pkl', testname+'.pkl')
-    
+
     ## Save matrix with modifications
     np.save(refname+'.npy', output_matrix)
     print('overwrote with cleaned matrix')
-    
+
     ## Save list of SMILES for what each compound is in each index of the matrix
     ref_db = tools.read_file_to_dataframe(ref)
     ref_db.iloc[keep_ind_ref].to_csv(refname+'_row.csv', index=False)
